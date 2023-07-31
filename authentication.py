@@ -1,5 +1,4 @@
-import sys
-import getpass
+import device_info
 import json
 import base64
 import requests
@@ -7,18 +6,15 @@ import urllib3
 
 urllib3.disable_warnings()
 
-
-IP = sys.argv[1]
-PORT = "443"
-URL = "https://" + IP + ":" + PORT + "/api/tokenservices"
-USERNAME = sys.argv[2]
-PASSWORD = getpass.getpass()
+IP_ADDRESS = device_info.IP
+PORT = device_info.PORT
+USERNAME = device_info.USERNAME
+PASSWORD = device_info.PASSWORD
 
 
-def get_x_auth_token(ip):
+def get_x_auth_token(ip_address, port,  username, password):
     token = None
-    username = USERNAME
-    password = PASSWORD
+    base_url = f"https://{ip_address}:{port}/api/tokenservices"
     credentials = f"{username}:{password}"
     encoded_credentials = base64.b64encode(credentials.encode('utf-8')).decode('utf-8')
     payload = {}
@@ -28,7 +24,7 @@ def get_x_auth_token(ip):
     }
     try:
         response = requests.post(
-            url=URL, headers=headers, data=json.dumps(payload), verify=False, timeout=10
+            url=base_url, headers=headers, data=json.dumps(payload), verify=False, timeout=10
         )
         if response.status_code == 204:
             print("Successfully obtained session token.")
@@ -42,11 +38,10 @@ def get_x_auth_token(ip):
         return None
 
 
-def delete_x_auth_token(token):
-    headers = Header
-    url = URL + '/' + token
-    requests.delete(url=url, headers=headers, verify=False, timeout=10)
+# def delete_x_auth_token(token):
+#     headers = Header
+#     url = URL + '/' + token
+#     requests.delete(url=url, headers=headers, verify=False, timeout=10)
 
-
-Token = get_x_auth_token(IP)
+Token = get_x_auth_token(IP_ADDRESS, PORT, USERNAME, PASSWORD)
 Header = {"x-auth-token": Token, "Content-Type": "application/json"}
