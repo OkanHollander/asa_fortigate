@@ -6,10 +6,10 @@ import urllib3
 
 urllib3.disable_warnings()
 
-IP_ADDRESS = device_info.IP
-PORT = device_info.PORT
-USERNAME = device_info.USERNAME
-PASSWORD = device_info.PASSWORD
+IP_ADDRESS = device_info.asa_ip_address
+PORT = device_info.asa_port
+USERNAME = device_info.asa_username
+PASSWORD = device_info.asa_password
 
 
 def get_x_auth_token(ip_address, port,  username, password):
