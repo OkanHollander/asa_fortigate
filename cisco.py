@@ -81,33 +81,60 @@ class Cisco:
         except requests.exceptions.RequestException:
             return False
 
-    def _make_api_request(self, method, end_point, data=None):
-        max_retries = 3
-        retry_delay = 1
+    def _make_api_request(self, method, end_point, params=None, data=None):
+        base_url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/"
+        url = f"{base_url}{end_point}"
+        
+        try:
+            response = self.session.request(method, url, params=params, json=data, verify=False, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as error:
+            print(f"Error: {error}")
+            return None
 
-        if not self._is_valid_endpoint(end_point):
-            raise ValueError(f"Endpoint '{end_point}' does not exist for device '{self.device_name}'")
 
-        url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/{end_point}"
+    def _get_paged_data(self, endpoint):
+        limit = 100
+        offset = 0
+        all_data = []
 
-        for retry in range(max_retries):
-            try:
-                response = self.session.request(method, url, json=data, verify=False, timeout=10)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.RequestException as error:
-                print(f"Error: {error}")
-                if retry < max_retries - 1:
-                    print(f"Retrying after {retry_delay} seconds...")
-                    time.sleep(retry_delay)
-                else:
-                    print(f"Failed to make API request after {max_retries} retries.")
-                    return None
-    
+        base_url = f"https://{self.credentials[self.device_name]['ip_address']}/api/{endpoint}?limit={limit}&offset={offset}"
+        headers = {
+            "Authorization": "Basic " + base64.b64encode(f"{self.credentials[self.device_name]['username']}:{self.credentials[self.device_name]['password']}".encode()).decode(),
+        }
+
+        while True:
+            response = requests.get(url=base_url, headers=headers, verify=False, timeout=10)
+
+            if response.status_code != 200:
+                print(f"{response.status_code}")
+                break
+
+            data = response.json()
+
+            if "items" in data:
+                results = data["items"]
+                all_data.extend(results)
+
+                if len(results) < limit or len(all_data) == data["rangeInfo"]["total"]:
+                    break
+
+                offset += limit
+                base_url = f"https://{self.credentials[self.device_name]['ip_address']}/api/{endpoint}?limit={limit}&offset={offset}"
+            else:
+                print("No 'items' found in the response.")
+                break
+
+        return all_data
+
     def get_network_objects(self):
         endpoint = "objects/networkobjects"
-        return self._make_api_request("GET", endpoint)
+        self._login()  # Make sure we are logged in before making the API request
+        return self._get_paged_data(endpoint)
 
     def get_static_routes(self):
         endpoint = "routing/static"
+        self._login()  # Make sure we are logged in before making the API request
         return self._make_api_request("GET", endpoint)
+
