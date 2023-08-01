@@ -1,14 +1,29 @@
 import json
-import requests
-import urllib3
 import configparser
 import base64
-import time
-import logging
+import urllib3
+import requests
 
 urllib3.disable_warnings()
 
 class Cisco:
+    """
+    A class to interact with Cisco devices through their REST API.
+
+    This class provides methods to authenticate with the Cisco device,
+    make API requests, and retrieve network objects and static routes.
+
+    Parameters:
+        device_name (str): The name of the device as defined in the configuration file.
+        file_path (str): The path to the configuration file containing device credentials.
+
+    Attributes:
+        device_name (str): The name of the device as defined in the configuration file.
+        file_path (str): The path to the configuration file containing device credentials.
+        credentials (dict): A dictionary containing credentials for different devices.
+        token (str): The session token obtained after successful login.
+        session (requests.Session): A session object to maintain the connection to the device.
+    """
     def __init__(self, device_name, file_path):
         """
         Initializes a Cisco instance with the provided device_name and configuration file path.
@@ -90,7 +105,8 @@ class Cisco:
         device_credentials = self.credentials.get(self.device_name, {})
         ip_address = device_credentials.get('ip_address')
         port = device_credentials.get('port')
-        token = self._get_x_auth_token(ip_address, port, device_credentials.get('username'), device_credentials.get('password'))
+        token = self._get_x_auth_token(ip_address, port, device_credentials.get('username'),
+                                       device_credentials.get('password'))
         if token:
             self.session.headers.update({"x-auth-token": token})
         else:
@@ -124,7 +140,7 @@ class Cisco:
         """
         base_url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/"
         url = f"{base_url}{end_point}"
-        
+
         try:
             response = self.session.request(method, url, params=params, json=data, verify=False, timeout=10)
             response.raise_for_status()
@@ -194,4 +210,3 @@ class Cisco:
         endpoint = "routing/static"
         self._login()  # Make sure we are logged in before making the API request
         return self._make_api_request("GET", endpoint)
-
