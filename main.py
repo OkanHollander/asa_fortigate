@@ -1,15 +1,12 @@
 # Cisco ASA restful API to obtain all address objects with the requests library
-from authentication import Authenticator
+import cisco
 
 FILE_PATH = "credentials.ini"
+cisco_device = "ASA"
 
-# Create the authenticator instance
-authenticator = Authenticator(FILE_PATH)
-
-# Accessing credentials for ASA
-asa_header = authenticator.get_auth_header("ASA")
-
+# Accessing ASA
+cisco_device = cisco.Cisco(cisco_device, FILE_PATH)
 
 if __name__ == "__main__":
-    print(asa_header)
-    
+    static_routes = cisco_device.get_static_routes()
+    print(static_routes)
