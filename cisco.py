@@ -3,6 +3,7 @@ import requests
 import urllib3
 import configparser
 import base64
+import time
 import logging
 
 urllib3.disable_warnings()
@@ -81,18 +82,27 @@ class Cisco:
             return False
 
     def _make_api_request(self, method, end_point, data=None):
+        max_retries = 3
+        retry_delay = 1
+
         if not self._is_valid_endpoint(end_point):
             raise ValueError(f"Endpoint '{end_point}' does not exist for device '{self.device_name}'")
 
         url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/{end_point}"
 
-        try:
-            response = self.session.request(method, url, json=data, verify=False, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as error:
-            print(f"Error: {error}")
-            return None
+        for retry in range(max_retries):
+            try:
+                response = self.session.request(method, url, json=data, verify=False, timeout=10)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.RequestException as error:
+                print(f"Error: {error}")
+                if retry < max_retries - 1:
+                    print(f"Retrying after {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    print(f"Failed to make API request after {max_retries} retries.")
+                    return None
     
     def get_network_objects(self):
         endpoint = "objects/networkobjects"
