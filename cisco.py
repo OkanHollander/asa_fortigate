@@ -72,7 +72,18 @@ class Cisco:
         else:
             raise ValueError("Failed to login. Unable to obtain the session token.")
 
+    def _is_valid_endpoint(self, endpoint):
+        url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/{endpoint}"
+        try:
+            response = self.session.request("GET", url, verify=False, timeout=10)
+            return response.status_code == 200
+        except requests.exceptions.RequestException:
+            return False
+
     def _make_api_request(self, method, end_point, data=None):
+        if not self._is_valid_endpoint(end_point):
+            raise ValueError(f"Endpoint '{end_point}' does not exist for device '{self.device_name}'")
+
         url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/{end_point}"
 
         try:
