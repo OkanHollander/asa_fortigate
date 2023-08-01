@@ -3,6 +3,7 @@ import requests
 import urllib3
 import configparser
 import base64
+import logging
 
 urllib3.disable_warnings()
 
