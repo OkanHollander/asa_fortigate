@@ -93,6 +93,10 @@ class Cisco:
         except requests.exceptions.RequestException as error:
             print(f"Error: {error}")
             return None
+    
+    def get_network_objects(self):
+        endpoint = "objects/networkobjects"
+        return self._make_api_request("GET", endpoint)
 
     def get_static_routes(self):
         endpoint = "routing/static"
