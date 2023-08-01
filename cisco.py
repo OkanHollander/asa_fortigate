@@ -10,6 +10,12 @@ urllib3.disable_warnings()
 
 class Cisco:
     def __init__(self, device_name, file_path):
+        """
+        Initializes a Cisco instance with the provided device_name and configuration file path.
+
+        :param device_name: The name of the device in the configuration file.
+        :param file_path: The path to the configuration file (credentials.ini).
+        """
         self.device_name = device_name
         self.file_path = file_path
         self.credentials = self._read_credentials()
@@ -21,6 +27,11 @@ class Cisco:
         self._login()
 
     def _read_credentials(self):
+        """
+        Reads the credentials from the configuration file.
+
+        :return: A dictionary of credentials.
+        """
         config = configparser.ConfigParser()
         config.read(self.file_path)
 
@@ -35,6 +46,15 @@ class Cisco:
         return credentials
 
     def _get_x_auth_token(self, ip_address, port, username, password):
+        """
+        Obtains an X-Auth-Token from the Cisco device.
+
+        :param ip_address: The IP address of the Cisco device.
+        :param port: The port of the Cisco device.
+        :param username: The username of the Cisco device.
+        :param password: The password of the Cisco device.
+        :return: An X-Auth-Token if successful, None otherwise.
+        """
         if self.token:
             return self.token
 
@@ -64,6 +84,9 @@ class Cisco:
             return None
 
     def _login(self):
+        """
+        Logs into the Cisco device.
+        """
         device_credentials = self.credentials.get(self.device_name, {})
         ip_address = device_credentials.get('ip_address')
         port = device_credentials.get('port')
@@ -74,6 +97,13 @@ class Cisco:
             raise ValueError("Failed to login. Unable to obtain the session token.")
 
     def _is_valid_endpoint(self, endpoint):
+        """
+        Checks if the specified API endpoint is valid.
+
+        :param endpoint: The API endpoint to check.
+
+        :return: True if the endpoint is valid, False otherwise.
+        """
         url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/{endpoint}"
         try:
             response = self.session.request("GET", url, verify=False, timeout=10)
@@ -82,6 +112,16 @@ class Cisco:
             return False
 
     def _make_api_request(self, method, end_point, params=None, data=None):
+        """
+        Makes an API request to the specified endpoint using the provided HTTP method.
+
+        :param method: The HTTP method for the request (GET, POST, PUT, DELETE).
+        :param end_point: The API endpoint to request.
+        :param params: The URL parameters for the request.
+        :param data: The JSON data to be included in the request.
+
+        :return: The JSON response if successful, None otherwise.
+        """
         base_url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/"
         url = f"{base_url}{end_point}"
         
@@ -95,6 +135,13 @@ class Cisco:
 
 
     def _get_paged_data(self, endpoint):
+        """
+        Retrieves paged data from the specified API endpoint.
+
+        :param endpoint: The API endpoint to retrieve data from.
+
+        :return: A list containing all data retrieved from the endpoint.
+        """
         limit = 100
         offset = 0
         all_data = []
@@ -129,11 +176,21 @@ class Cisco:
         return all_data
 
     def get_network_objects(self):
+        """
+        Retrieves all network objects from the device.
+
+        :return: A list of all network objects.
+        """
         endpoint = "objects/networkobjects"
         self._login()  # Make sure we are logged in before making the API request
         return self._get_paged_data(endpoint)
 
     def get_static_routes(self):
+        """
+        Retrieves all static routes from the device.
+
+        :return: The JSON response containing static routes if successful, None otherwise.
+        """
         endpoint = "routing/static"
         self._login()  # Make sure we are logged in before making the API request
         return self._make_api_request("GET", endpoint)
