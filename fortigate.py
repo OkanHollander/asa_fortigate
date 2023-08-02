@@ -76,6 +76,19 @@ class Fortigate:
         logging.warning('Logged out successfully')
 
 
+    def does_exist(self, object_url):
+        """
+        Checks if an object exists on the device.
+        
+        "return: True if object exists, False otherwise
+        """
+        session = self.login()
+        request = session.get(object_url, verify=self.verify, timeout=self.timeout, params='vdom=' + self.vdom)
+        self.logout(session)
+        if request.status_code == 200:
+            return True
+        return False
+
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
     session = fortigate.login()
