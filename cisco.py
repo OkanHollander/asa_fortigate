@@ -78,15 +78,6 @@ class Cisco:
         timestamp = time.strftime('%Y-%m-%d_%H-%M-%S')  # Use the same format as in the debug message
         log_file = os.path.join(date_dir, f"{log_level_str}.{timestamp}.log")
         logging.basicConfig(filename=log_file, level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
-
-    def _log(self, level, message):
-        """
-        Log a message with the specified log level.
-
-        :param level: The log level (e.g., logging.DEBUG, logging.INFO, logging.ERROR, etc.).
-        :param message: The message to log.
-        """
-        logging.log(level, message)
     
     def save_to_file(self, data, filename):
         """
