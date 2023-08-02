@@ -1,4 +1,5 @@
 import logging
+import json
 import os
 import time
 import configparser
@@ -10,13 +11,14 @@ DEVICE = 'FortiGate'
 
 class Fortigate:
 
-    def __init__(self, file_path, timeout=10, vdom='root', port="443", verify=False):
+    def __init__(self, device_name, file_path, timeout=10, vdom='root', port="443", verify=False):
+        self.device_name = device_name
         self.credentials = self._read_credentials(file_path)
         self.timeout = timeout
         self.vdom = vdom
         self.port = port
         self.verify = verify
-        self.urlbase = f"http://{self.credentials[DEVICE]['ip_address']}:{self.credentials[DEVICE]['port']}/"
+        self.urlbase = f"http://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/"
         self._setup_logging(logging.DEBUG)
 
     def _setup_logging(self, log_level=logging.DEBUG):
@@ -31,7 +33,7 @@ class Fortigate:
             os.makedirs(logs_dir)
 
         # Create the subdirectory for the device's hostname (ip_address) if it doesn't exist
-        credentials = self.credentials[DEVICE]
+        credentials = self.credentials[self.device_name]
         device_dir = os.path.join(logs_dir, credentials['ip_address'])
         if not os.path.exists(device_dir):
             os.makedirs(device_dir)
@@ -53,7 +55,6 @@ class Fortigate:
         timestamp = time.strftime('%Y-%m-%d_%H-%M-%S')  # Use the same format as in the debug message
         log_file = os.path.join(date_dir, f"{log_level_str}.{timestamp}.log")
         logging.basicConfig(filename=log_file, level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
     def _read_credentials(self, file_path):
         """
@@ -86,7 +87,7 @@ class Fortigate:
             urllib3.disable_warnings()
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
-        credentials = self.credentials[DEVICE]
+        credentials = self.credentials[self.device_name]
         url = f"{self.urlbase}logincheck"
         # Login
         session.post(url,
@@ -219,7 +220,7 @@ class Fortigate:
         return result
 
 if __name__ == "__main__":
-    fortigate = Fortigate(file_path='credentials.ini')
+    fortigate = Fortigate("Fortigate", file_path='credentials.ini')
     create_data = {'name': 'Test_Okan', 'type': 'subnet', 'subnet': '192.168.0.0 255.255.255.0'}
     fortigate.create_firewall_address("Test_Okan", create_data)
 
