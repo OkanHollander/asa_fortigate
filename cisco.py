@@ -203,9 +203,8 @@ class Cisco:
                 # print("Successfully logged out and deleted the session token.")
                 self.token = None
                 return True
-            else:
-                print(f"Error: {response.status_code}. Failed to logout. {response.text}")
-                return False
+            print(f"Error: {response.status_code}. Failed to logout. {response.text}")
+            return False
         except requests.exceptions.RequestException as error:
             print(f"Error: {error}. Failed to logout!")
             return False
