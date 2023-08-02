@@ -127,28 +127,28 @@ class Cisco:
         except requests.exceptions.RequestException:
             return False
 
-    def _make_api_request(self, method, end_point, params=None, data=None):
+    def _api_request(self, method, url, params=None, data=None):
         """
-        Makes an API request to the specified endpoint using the provided HTTP method.
+        Makes an API request to the specified URL using the provided HTTP method.
 
         :param method: The HTTP method for the request (GET, POST, PUT, DELETE).
-        :param end_point: The API endpoint to request.
+        :param url: The URL to make the API request to.
         :param params: The URL parameters for the request.
         :param data: The JSON data to be included in the request.
 
         :return: The JSON response if successful, None otherwise.
         """
-        base_url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/"
-        url = f"{base_url}{end_point}"
+        headers = {
+            "Authorization": "Basic " + base64.b64encode(f"{self.credentials[self.device_name]['username']}:{self.credentials[self.device_name]['password']}".encode()).decode(),
+        }
 
         try:
-            response = self.session.request(method, url, params=params, json=data, verify=False, timeout=10)
+            response = self.session.request(method, url, params=params, json=data, headers=headers, verify=False, timeout=10)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as error:
             print(f"Error: {error}")
             return None
-
 
     def _get_paged_data(self, endpoint):
         """
@@ -162,31 +162,26 @@ class Cisco:
         offset = 0
         all_data = []
 
-        base_url = f"https://{self.credentials[self.device_name]['ip_address']}/api/{endpoint}?limit={limit}&offset={offset}"
-        headers = {
-            "Authorization": "Basic " + base64.b64encode(f"{self.credentials[self.device_name]['username']}:{self.credentials[self.device_name]['password']}".encode()).decode(),
-        }
-
         while True:
-            response = requests.get(url=base_url, headers=headers, verify=False, timeout=10)
+            base_url = f"https://{self.credentials[self.device_name]['ip_address']}/api/{endpoint}"
+            params = {"limit": limit, "offset": offset}
 
-            if response.status_code != 200:
-                print(f"{response.status_code}")
+            data = self._api_request("GET", base_url, params=params)
+
+            if not data:
+                print(f"Failed to retrieve data from '{endpoint}'.")
                 break
-
-            data = response.json()
 
             if "items" in data:
                 results = data["items"]
                 all_data.extend(results)
 
-                if len(results) < limit or len(all_data) == data["rangeInfo"]["total"]:
+                if len(all_data) == data["rangeInfo"]["total"]:
                     break
 
                 offset += limit
-                base_url = f"https://{self.credentials[self.device_name]['ip_address']}/api/{endpoint}?limit={limit}&offset={offset}"
             else:
-                print("No 'items' found in the response.")
+                print(f"No 'items' found in the response from '{endpoint}'.")
                 break
 
         return all_data
@@ -209,4 +204,4 @@ class Cisco:
         """
         endpoint = "routing/static"
         self._login()  # Make sure we are logged in before making the API request
-        return self._make_api_request("GET", endpoint)
+        return self._get_paged_data(endpoint)
