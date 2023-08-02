@@ -1,7 +1,149 @@
 import logging
+import configparser
 import urllib3
 import requests
 
-
 urllib3.disable_warnings()
+DEVICE = 'FortiGate'
 
+class Fortigate:
+
+    def __init__(self, file_path, timeout=10, vdom='root', port="443", verify=False):
+        self.credentials = self._read_credentials(file_path)
+        self.timeout = timeout
+        self.vdom = vdom
+        self.port = port
+        self.verify = verify
+        self.urlbase = f"http://{self.credentials[DEVICE]['ip_address']}:{self.credentials[DEVICE]['port']}/"
+
+    def _read_credentials(self, file_path):
+        """
+        Reads the credentials from the configuration file.
+
+        :return: A dictionary of credentials.
+        """
+        config = configparser.ConfigParser()
+        config.read(file_path)
+
+        credentials = {}
+        for section in config.sections():
+            credentials[section] = {
+                'ip_address': config.get(section, 'ip_address'),
+                'port': config.getint(section, 'port'),
+                'username': config.get(section, 'username'),
+                'password': config.get(section, 'password'),
+            }
+        return credentials
+    
+    # Login / Logout
+    def login(self):
+        """
+        Log into the Fortigate with provided parameters
+        
+        "return: Open Session
+        """
+        session = requests.session()
+        if not self.verify:
+            urllib3.disable_warnings()
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        credentials = self.credentials[DEVICE]
+        url = f"{self.urlbase}logincheck"
+        # Login
+        session.post(url,
+                     data=f"username={credentials['username']}&secretkey={credentials['password']}",
+                     verify=self.verify,
+                     timeout=self.timeout)
+        # Get CSRF token from cookies and add to headers
+        for cookie in session.cookies:
+            if cookie.name == "ccsrftoken":
+                csrftoken = cookie.value
+                session.headers.update({"X-CSRFToken": csrftoken})
+        
+        login_check = session.get(f"{self.urlbase}api/v2/cmdb/system/vdom")
+        login_check.raise_for_status()
+        return session
+
+    def logout(self, logout_session):
+        """
+        Log out of the device.
+        
+        "return: None
+        """
+        url = f"{self.urlbase}logout"
+        logout_session.post(url, verify=self.verify, timeout=self.timeout)
+        logging.basicConfig(format='%(asctime)s %(message)s')
+        logging.warning('Logged out successfully')
+
+
+    def does_exist(self, object_url):
+        """
+        Checks if an object exists on the device.
+        
+        "return: True if object exists, False otherwise
+        """
+        session = self.login()
+        request = session.get(object_url, verify=self.verify, timeout=self.timeout, params='vdom=' + self.vdom)
+        self.logout(session)
+        if request.status_code == 200:
+            return True
+        return False
+    
+    def get(self, url):
+        """
+        Get an object from the device.
+
+        :param url: The URL of the object to get.
+        
+        "return: Request result as a JSON object
+        """
+        session = self.login()
+        request = session.get(url, verify=self.verify, timeout=self.timeout, params='vdom=' + self.vdom)
+        self.logout(session)
+        if request.status_code == 200:
+            return request.json()['results']
+        return request.status_code
+
+    def put(self, url, data):
+        """
+        Perform PUT operation on provided URL
+
+        :param url: Target of PUT operation
+        :param data: JSON data. MUST be a correctly formatted string. e.g. "{'key': 'value'}"
+
+        :return: HTTP status code returned from PUT operation
+        """
+        session = self.login()
+        result = session.put(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
+        self.logout(session)
+        return result
+    
+    def post(self, url, data):
+        """
+        Perform POST operation on provided URL
+
+        :param url: Target of POST operation
+        :param data: JSON data. MUST be a correctly formatted string. e.g. "{'key': 'value'}"
+
+        :return: HTTP status code returned from POST operation
+        """
+        session = self.login()
+        result = session.post(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
+        self.logout(session)
+        return result
+    
+    def delete(self, url):
+        """
+        Perform DELETE operation on provided URL
+
+        :param url: Target of DELETE operation
+
+        :return: HTTP status code returned from DELETE operation
+        """
+        session = self.login()
+        result = session.delete(url, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
+        self.logout(session)
+        return result
+
+if __name__ == "__main__":
+    fortigate = Fortigate(file_path='credentials.ini')
