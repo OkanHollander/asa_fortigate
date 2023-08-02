@@ -117,6 +117,20 @@ class Fortigate:
         result = session.put(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
         self.logout(session)
         return result
+    
+    def post(self, url, data):
+        """
+        Perform POST operation on provided URL
+
+        :param url: Target of POST operation
+        :param data: JSON data. MUST be a correctly formatted string. e.g. "{'key': 'value'}"
+
+        :return: HTTP status code returned from POST operation
+        """
+        session = self.login()
+        result = session.post(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
+        self.logout(session)
+        return result
 
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
