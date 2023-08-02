@@ -135,9 +135,8 @@ class Cisco:
             if response.status_code == 200:
                 response.raise_for_status()
                 return response.json()
-            else:
-                response.raise_for_status()
-                return f"Error: {response.status_code}. Failed to retrieve data from '{url}'."
+            response.raise_for_status()
+            return f"Error: {response.status_code}. Failed to retrieve data from '{url}'."
         except requests.exceptions.RequestException as error:
             print(f"Error: {error}")
             return None
