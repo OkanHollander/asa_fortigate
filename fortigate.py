@@ -49,13 +49,10 @@ class Fortigate:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
         credentials = self.credentials[DEVICE]
-        # headers = {"Authorization": f"Bearer {credentials['api_key']}"}
-        # headers = {"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Bearer N9scGHNcxh5btdzGm3mz14s4jnpmn3"}
         url = f"{self.urlbase}logincheck"
         # Login
         session.post(url,
                      data=f"username={credentials['username']}&secretkey={credentials['password']}",
-                    # headers=headers,
                      verify=self.verify,
                      timeout=self.timeout)
         # Get CSRF token from cookies and add to headers
@@ -63,7 +60,9 @@ class Fortigate:
             if cookie.name == "ccsrftoken":
                 csrftoken = cookie.value
                 session.headers.update({"X-CSRFToken": csrftoken})
-        
+        session.headers.update({"Content-Type": "application/json", 
+                                "Accept": "application/json", 
+                                "Authorization": f"Bearer {credentials['api_key']}"})
         login_check = session.get(f"{self.urlbase}api/v2/cmdb/system/vdom")
         login_check.raise_for_status()
         return session
@@ -76,8 +75,8 @@ class Fortigate:
         """
         url = f"{self.urlbase}logout"
         logout_session.post(url, verify=self.verify, timeout=self.timeout)
-        logging.basicConfig(format='%(asctime)s %(message)s')
-        logging.warning('Logged out successfully')
+        # logging.basicConfig(format='%(asctime)s %(message)s')
+        # logging.warning('Logged out successfully')
 
 
     def does_exist(self, object_url):
@@ -179,14 +178,11 @@ class Fortigate:
         # Check whether target object already exists
         if self.does_exist(api_url + address):
             return 424
-        result = self.post(api_url, data)
-        print(result)
+        result = self.post(api_url, f"{data}")
         return result
 
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
-    # create_data = {'name': 'Test_Okan', 'type': 'subnet', 'subnet': '192.168.0.0 255.255.255.0'}
-    # fortigate.create_firewall_address("Test_Okan", create_data)
-    objects = fortigate.get_firewall_address()
-    print(objects)
+    create_data = {'name': 'Test_Okan', 'type': 'subnet', 'subnet': '192.168.0.0 255.255.255.0'}
+    print(fortigate.create_firewall_address("Test_Okan", create_data))
 
