@@ -6,6 +6,7 @@ import os
 import time
 import urllib3
 import requests
+from rich import print as rprint
 
 urllib3.disable_warnings()
 
@@ -87,6 +88,31 @@ class Cisco:
         :param message: The message to log.
         """
         logging.log(level, message)
+    
+    def save_to_file(self, data, filename):
+        """
+        Save a JSON data to a file in the specified device directory.
+
+        :param data: The JSON data to be saved.
+        :param filename: The filename (without extension) to use for the saved file.
+        :param device_directory: The device directory where the file will be saved.
+        """
+        # Create the base directory "files" if it doesn't exist
+        base_directory = 'Files'
+        if not os.path.exists(base_directory):
+            os.makedirs(base_directory)
+
+        # Create the device directory if it doesn't exist
+        device_directory_path = os.path.join(base_directory, self.credentials[self.device_name]['ip_address'])
+        if not os.path.exists(device_directory_path):
+            os.makedirs(device_directory_path)
+
+        # Append '.json' extension to the filename
+        filename_with_extension = f"{filename}.json"
+
+        file_path = os.path.join(device_directory_path, filename_with_extension)
+        with open(file_path, 'w', encoding='UTF-8') as file:
+            json.dump(data, file, indent=4)
 
     def _read_credentials(self):
         """
@@ -255,7 +281,9 @@ class Cisco:
         :return: A list of all network objects.
         """
         endpoint = "objects/networkobjects"
-        return self._get_paged_data(endpoint)
+        data = self._get_paged_data(endpoint)
+        rprint(data)
+        self.save_to_file(data, 'network_objects')
 
     def get_static_routes(self):
         """
