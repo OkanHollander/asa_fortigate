@@ -112,21 +112,6 @@ class Cisco:
         else:
             raise ValueError("Failed to login. Unable to obtain the session token.")
 
-    def _is_valid_endpoint(self, endpoint):
-        """
-        Checks if the specified API endpoint is valid.
-
-        :param endpoint: The API endpoint to check.
-
-        :return: True if the endpoint is valid, False otherwise.
-        """
-        url = f"https://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/api/{endpoint}"
-        try:
-            response = self.session.request("GET", url, verify=False, timeout=10)
-            return response.status_code == 200
-        except requests.exceptions.RequestException:
-            return False
-
     def _api_request(self, method, url, params=None, data=None):
         """
         Makes an API request to the specified URL using the provided HTTP method.
@@ -147,8 +132,12 @@ class Cisco:
 
         try:
             response = self.session.request(method, url, params=params, json=data, headers=headers, verify=False, timeout=10)
-            response.raise_for_status()
-            return response.json()
+            if response.status_code == 200:
+                response.raise_for_status()
+                return response.json()
+            else:
+                response.raise_for_status()
+                return f"Error: {response.status_code}. Failed to retrieve data from '{url}'."
         except requests.exceptions.RequestException as error:
             print(f"Error: {error}")
             return None
@@ -205,5 +194,4 @@ class Cisco:
         :return: The JSON response containing static routes if successful, None otherwise.
         """
         endpoint = "routing/static"
-        # self._login()  # Make sure we are logged in before making the API request
         return self._get_paged_data(endpoint)
