@@ -138,8 +138,11 @@ class Cisco:
 
         :return: The JSON response if successful, None otherwise.
         """
+        if not self.token:
+            self._login()
+
         headers = {
-            "Authorization": "Basic " + base64.b64encode(f"{self.credentials[self.device_name]['username']}:{self.credentials[self.device_name]['password']}".encode()).decode(),
+            "x-auth-token": self.token
         }
 
         try:
@@ -193,7 +196,6 @@ class Cisco:
         :return: A list of all network objects.
         """
         endpoint = "objects/networkobjects"
-        self._login()  # Make sure we are logged in before making the API request
         return self._get_paged_data(endpoint)
 
     def get_static_routes(self):
@@ -203,5 +205,5 @@ class Cisco:
         :return: The JSON response containing static routes if successful, None otherwise.
         """
         endpoint = "routing/static"
-        self._login()  # Make sure we are logged in before making the API request
+        # self._login()  # Make sure we are logged in before making the API request
         return self._get_paged_data(endpoint)
