@@ -265,3 +265,7 @@ class Cisco:
         """
         endpoint = "routing/static"
         return self._get_paged_data(endpoint)
+
+    def get_acl(self):
+        endpoint = "access/in/INSIDE/rules"
+        return self._get_paged_data(endpoint)
