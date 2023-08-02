@@ -17,11 +17,11 @@ def arg_parser():
     parser.add_argument('-a',
                         '--acl_argument',
                         help='Argument for ACL')
-    parser.add_argument('-no',
+    parser.add_argument('-n',
                         '--network_objects',
                         action='store_true',
                         help='Execute network_objects without an argument')
-    parser.add_argument('-sr',
+    parser.add_argument('-s',
                         '--static_routes',
                         action='store_true',
                         help='Execute static_routes without any argument')
@@ -34,7 +34,7 @@ def arg_parser():
     elif args.static_routes:
         CISCO_DEVICE.get_static_routes()
     else:
-        print("No valid argument provided. Use -a <argument_name>, -n, or -sr.")
+        print("No valid argument provided. Use -a <argument_name>, -n, or -s.")
    
 if __name__ == "__main__":
     #starting argument parser
