@@ -162,3 +162,4 @@ cython_debug/
 # Handmatig
 openssl.cnf
 credentials.ini
+Files/
