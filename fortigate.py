@@ -75,7 +75,6 @@ class Fortigate:
             }
         return credentials
     
-    # Login / Logout
     def login(self):
         """
         Log into the Fortigate with provided parameters
@@ -116,7 +115,6 @@ class Fortigate:
         logout_session.post(url, verify=self.verify, timeout=self.timeout)
         # logging.basicConfig(format='%(asctime)s %(message)s')
         # logging.warning('Logged out successfully')
-
 
     def does_exist(self, object_url):
         """
