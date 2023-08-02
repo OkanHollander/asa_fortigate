@@ -6,7 +6,6 @@ import os
 import time
 import urllib3
 import requests
-from rich import print as rprint
 
 urllib3.disable_warnings()
 
