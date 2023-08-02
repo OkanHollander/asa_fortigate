@@ -104,5 +104,19 @@ class Fortigate:
             return request.json()['results']
         return request.status_code
 
+    def put(self, url, data):
+        """
+        Perform PUT operation on provided URL
+
+        :param url: Target of PUT operation
+        :param data: JSON data. MUST be a correctly formatted string. e.g. "{'key': 'value'}"
+
+        :return: HTTP status code returned from PUT operation
+        """
+        session = self.login()
+        result = session.put(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
+        self.logout(session)
+        return result
+
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
