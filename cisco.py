@@ -266,6 +266,13 @@ class Cisco:
         endpoint = "routing/static"
         return self._get_paged_data(endpoint)
 
-    def get_acl(self):
-        endpoint = "access/in/INSIDE/rules"
+    def get_acl(self, acl):
+        """
+        Retrieves specific ACL's from the device.
+
+        :param acl: The name of the ACL to retrieve.
+
+        :return: The JSON response containing static routes if successful, None otherwise.
+        """
+        endpoint = f"access/in/{acl}/rules"
         return self._get_paged_data(endpoint)
