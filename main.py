@@ -12,3 +12,4 @@ if __name__ == "__main__":
     static_routes = CISCO_DEVICE.get_static_routes()
     address_objects = CISCO_DEVICE.get_network_objects()
     rprint(address_objects)
+    CISCO_DEVICE.logout()
