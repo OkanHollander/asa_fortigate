@@ -282,7 +282,7 @@ class Cisco:
         """
         endpoint = "objects/networkobjects"
         data = self._get_paged_data(endpoint)
-        rprint(data)
+        # rprint(data)
         self.save_to_file(data, 'network_objects')
 
     def get_static_routes(self):
@@ -292,7 +292,9 @@ class Cisco:
         :return: The JSON response containing static routes if successful, None otherwise.
         """
         endpoint = "routing/static"
-        return self._get_paged_data(endpoint)
+        data = self._get_paged_data(endpoint)
+        # rprint(data)
+        self.save_to_file(data, 'static_routes')
 
     def get_acl(self, acl):
         """
@@ -303,4 +305,6 @@ class Cisco:
         :return: The JSON response containing static routes if successful, None otherwise.
         """
         endpoint = f"access/in/{acl}/rules"
-        return self._get_paged_data(endpoint)
+        data = self._get_paged_data(endpoint)
+        # rprint(data)
+        self.save_to_file(data, f"acl_{acl}")
