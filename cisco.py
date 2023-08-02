@@ -2,6 +2,8 @@ import json
 import configparser
 import base64
 import logging
+import os
+import time
 import urllib3
 import requests
 
@@ -41,6 +43,50 @@ class Cisco:
         self.session.headers.update({'Content-Type': 'application/json'})
         self.session.headers.update({'Accept': 'application/json'})
         self._login()
+        self._setup_logging(logging.DEBUG)
+
+    def _setup_logging(self, log_level=logging.DEBUG):
+        """
+        Set up logging configuration.
+
+        :param log_level: The log level to be used (e.g., logging.DEBUG, logging.INFO, logging.ERROR, etc.).
+        """
+        # Create the 'Logs' directory if it doesn't exist
+        logs_dir = os.path.join(os.getcwd(), 'Logs')
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+
+        # Create the subdirectory for the device's hostname (ip_address) if it doesn't exist
+        device_dir = os.path.join(logs_dir, self.credentials[self.device_name]['ip_address'])
+        if not os.path.exists(device_dir):
+            os.makedirs(device_dir)
+
+        # Create the subdirectory for the current date if it doesn't exist
+        date_dir = os.path.join(device_dir, time.strftime('%Y-%m-%d'))
+        if not os.path.exists(date_dir):
+            os.makedirs(date_dir)
+
+        # Set up logging
+        log_level_str = {
+            logging.CRITICAL: 'CRITICAL',
+            logging.ERROR: 'ERROR',
+            logging.WARNING: 'WARNING',
+            logging.INFO: 'INFO',
+            logging.DEBUG: 'DEBUG'
+        }.get(log_level, 'DEBUG')  # Default to DEBUG if an invalid log level is provided
+
+        timestamp = time.strftime('%Y-%m-%d_%H-%M-%S')  # Use the same format as in the debug message
+        log_file = os.path.join(date_dir, f"{log_level_str}.{timestamp}.log")
+        logging.basicConfig(filename=log_file, level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    def _log(self, level, message):
+        """
+        Log a message with the specified log level.
+
+        :param level: The log level (e.g., logging.DEBUG, logging.INFO, logging.ERROR, etc.).
+        :param message: The message to log.
+        """
+        logging.log(level, message)
 
     def _read_credentials(self):
         """
@@ -175,7 +221,6 @@ class Cisco:
 
         :return: A list containing all data retrieved from the endpoint.
         """
-        logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
         limit = 100
         offset = 0
         all_data = []
