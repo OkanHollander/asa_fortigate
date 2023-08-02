@@ -88,7 +88,21 @@ class Fortigate:
         if request.status_code == 200:
             return True
         return False
+    
+    def get(self, url):
+        """
+        Get an object from the device.
+
+        :param url: The URL of the object to get.
+        
+        "return: Request result as a JSON object
+        """
+        session = self.login()
+        request = session.get(url, verify=self.verify, timeout=self.timeout, params='vdom=' + self.vdom)
+        self.logout(session)
+        if request.status_code == 200:
+            return request.json()['results']
+        return request.status_code
 
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
-    session = fortigate.login()
