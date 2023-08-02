@@ -162,7 +162,7 @@ class Cisco:
             )
             print(response.text)  # Print the response text for debugging
             if response.status_code == 204:
-                print("Successfully obtained session token.")
+                # print("Successfully obtained session token.")
                 self.token = response.headers["x-auth-token"]
                 return self.token
             else:
@@ -201,7 +201,7 @@ class Cisco:
         try:
             response = requests.delete(url=base_url, headers=headers, verify=False, timeout=10)
             if response.status_code == 204:
-                print("Successfully logged out and deleted the session token.")
+                # print("Successfully logged out and deleted the session token.")
                 self.token = None
                 return True
             else:
