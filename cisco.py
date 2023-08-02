@@ -1,6 +1,7 @@
 import json
 import configparser
 import base64
+import logging
 import urllib3
 import requests
 
@@ -111,6 +112,31 @@ class Cisco:
             self.session.headers.update({"x-auth-token": token})
         else:
             raise ValueError("Failed to login. Unable to obtain the session token.")
+    
+    def logout(self):
+        """
+        Logs out and deletes the session token.
+
+        :return: True if logout is successful, False otherwise.
+        """
+        base_url = f"https://{self.credentials[self.device_name]['ip_address']}/api/tokenservices/{self.token}"
+        headers = {
+            "Content-Type": "application/json",
+            "x-auth-token": self.token,
+        }
+
+        try:
+            response = requests.delete(url=base_url, headers=headers, verify=False, timeout=10)
+            if response.status_code == 204:
+                print("Successfully logged out and deleted the session token.")
+                self.token = None
+                return True
+            else:
+                print(f"Error: {response.status_code}. Failed to logout. {response.text}")
+                return False
+        except requests.exceptions.RequestException as error:
+            print(f"Error: {error}. Failed to logout!")
+            return False
 
     def _api_request(self, method, url, params=None, data=None):
         """
@@ -149,6 +175,7 @@ class Cisco:
 
         :return: A list containing all data retrieved from the endpoint.
         """
+        logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
         limit = 100
         offset = 0
         all_data = []
@@ -174,7 +201,6 @@ class Cisco:
             else:
                 print(f"No 'items' found in the response from '{endpoint}'.")
                 break
-
         return all_data
 
     def get_network_objects(self):
