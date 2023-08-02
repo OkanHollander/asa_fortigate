@@ -8,13 +8,13 @@ DEVICE = 'FortiGate'
 
 class Fortigate:
 
-    def __init__(self, file_path, timeout=10, vdom='root', port="80", verify=False):
+    def __init__(self, file_path, timeout=10, vdom='root', port="443", verify=False):
         self.credentials = self._read_credentials(file_path)
         self.timeout = timeout
         self.vdom = vdom
         self.port = port
         self.verify = verify
-        self.urlbase = f"http://{self.credentials[DEVICE]['ip_address']}:{self.port}/"
+        self.urlbase = f"http://{self.credentials[DEVICE]['ip_address']}:{self.credentials[DEVICE]['port']}/"
 
     def _read_credentials(self, file_path):
         """
