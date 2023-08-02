@@ -113,6 +113,7 @@ class Cisco:
         file_path = os.path.join(device_directory_path, filename_with_extension)
         with open(file_path, 'w', encoding='UTF-8') as file:
             json.dump(data, file, indent=4)
+        print(f"Saved {filename_with_extension} to {file_path}")
 
     def _read_credentials(self):
         """
