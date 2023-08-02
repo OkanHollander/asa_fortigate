@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 import configparser
 import urllib3
 import requests
@@ -15,6 +17,43 @@ class Fortigate:
         self.port = port
         self.verify = verify
         self.urlbase = f"http://{self.credentials[DEVICE]['ip_address']}:{self.credentials[DEVICE]['port']}/"
+        self._setup_logging(logging.DEBUG)
+
+    def _setup_logging(self, log_level=logging.DEBUG):
+        """
+        Set up logging configuration.
+
+        :param log_level: The log level to be used (e.g., logging.DEBUG, logging.INFO, logging.ERROR, etc.).
+        """
+        # Create the 'Logs' directory if it doesn't exist
+        logs_dir = os.path.join(os.getcwd(), 'Logs')
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+
+        # Create the subdirectory for the device's hostname (ip_address) if it doesn't exist
+        credentials = self.credentials[DEVICE]
+        device_dir = os.path.join(logs_dir, credentials['ip_address'])
+        if not os.path.exists(device_dir):
+            os.makedirs(device_dir)
+
+        # Create the subdirectory for the current date if it doesn't exist
+        date_dir = os.path.join(device_dir, time.strftime('%Y-%m-%d'))
+        if not os.path.exists(date_dir):
+            os.makedirs(date_dir)
+
+        # Set up logging
+        log_level_str = {
+            logging.CRITICAL: 'CRITICAL',
+            logging.ERROR: 'ERROR',
+            logging.WARNING: 'WARNING',
+            logging.INFO: 'INFO',
+            logging.DEBUG: 'DEBUG'
+        }.get(log_level, 'DEBUG')  # Default to DEBUG if an invalid log level is provided
+
+        timestamp = time.strftime('%Y-%m-%d_%H-%M-%S')  # Use the same format as in the debug message
+        log_file = os.path.join(date_dir, f"{log_level_str}.{timestamp}.log")
+        logging.basicConfig(filename=log_file, level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
     def _read_credentials(self, file_path):
         """
@@ -184,5 +223,5 @@ class Fortigate:
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
     create_data = {'name': 'Test_Okan', 'type': 'subnet', 'subnet': '192.168.0.0 255.255.255.0'}
-    print(fortigate.create_firewall_address("Test_Okan", create_data))
+    fortigate.create_firewall_address("Test_Okan", create_data)
 
