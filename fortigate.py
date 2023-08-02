@@ -49,7 +49,6 @@ class Fortigate:
         
         credentials = self.credentials[DEVICE]
         url = f"{self.urlbase}logincheck"
-        print(url)
         # Login
         session.post(url,
                      data=f"username={credentials['username']}&secretkey={credentials['password']}",
@@ -65,8 +64,18 @@ class Fortigate:
         login_check.raise_for_status()
         return session
 
+    def logout(self, logout_session):
+        """
+        Log out of the device.
+        
+        "return: None
+        """
+        url = f"{self.urlbase}logout"
+        logout_session.post(url, verify=self.verify, timeout=self.timeout)
+        logging.basicConfig(format='%(asctime)s %(message)s')
+        logging.warning('Logged out successfully')
 
 
 if __name__ == "__main__":
     fortigate = Fortigate(file_path='credentials.ini')
-    fortigate.login()
+    session = fortigate.login()
