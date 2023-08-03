@@ -1,4 +1,5 @@
 import logging
+from rich import print as rprint
 import json
 import os
 import time
@@ -7,7 +8,7 @@ import urllib3
 import requests
 
 urllib3.disable_warnings()
-DEVICE = 'FortiGate'
+# DEVICE = 'FortiGate'
 
 class Fortigate:
     def __init__(self, device_name, file_path, timeout=10, vdom='root', port="443", verify=False):
@@ -244,27 +245,54 @@ class Fortigate:
         """
         data = self.read_file(filename)
 
+        kind_mapping = {
+            "IPv4Network": ("subnet", ""),
+            "IPv4Range": ("iprange", ""),
+            "IPv4FQDN": ("fqdn", ""),
+            "IPv4Address": ("subnet", "/32")
+}
         json_data = {}
         for value in data.values():
-            SUBNET = None
             name = value.get("name")
             host = value.get("host").get("value")
-            if value.get("host").get("kind") == "IPv4Address":
-                SUBNET = "255.255.255.0"
+            kind = value.get("host").get("kind")
+            type_value, subnet_suffix = kind_mapping.get(kind, (None, ""))
 
-            json_data[name] = {
-                "name": name,
-                "type": "subnet",
-                "subnet": f"{host} {SUBNET}" if SUBNET else host
-            }
+            # Special handling for IPv4FQDN and IPv4Range
+            if kind == "IPv4FQDN":
+                json_data[name] = {
+                    "name": name,
+                    "type": type_value,
+                    "fqdn": host
+                }
+            elif kind == "IPv4Range":
+                start_ip, end_ip = host.split('-')
+                json_data[name] = {
+                    "name": name,
+                    "type": type_value,
+                    "start-ip": start_ip.strip(),
+                    "end-ip": end_ip.strip()
+                }
+            else:
+                json_data[name] = {
+                    "name": name,
+                    "type": type_value,
+                    "subnet": f"{host}{subnet_suffix}"
+                }
 
         if name_param:
             if name_param in json_data:
+                print(json_data[name_param])
                 self.create_firewall_address(name_param, json_data[name_param])
             else:
                 raise ValueError(f"Entry with name '{name_param}' not found in the JSON data.")
         elif BULK_DATA:
             for name, data in json_data.items():
+                print(data)
                 self.create_firewall_address(name, data)
         else:
             raise ValueError("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
+
+if __name__ == "__main__":
+    fortinet = Fortigate('Fortigate', 'credentials.ini')
+    rprint(fortinet.get_firewall_address())
