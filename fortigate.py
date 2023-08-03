@@ -238,7 +238,7 @@ class Fortigate:
             print("Error while processing the JSON file:", str(error))
 
     def process_address_objects(self, filename, name_param=None, BULK_DATA=False):
-        data = fortigate.read_file(filename)
+        data = self.read_file(filename)
 
         json_data = {}
         for value in data.values():
@@ -253,18 +253,14 @@ class Fortigate:
                 "type": "subnet",
                 "subnet": f"{host} {SUBNET}" if SUBNET else host
             }
-        
+
         if name_param:
             if name_param in json_data:
-                fortigate.create_firewall_address(name_param, json_data[name_param])
+                self.create_firewall_address(name_param, json_data[name_param])
             else:
                 raise ValueError(f"Entry with name '{name_param}' not found in the JSON data.")
         elif BULK_DATA:
             for name, data in json_data.items():
-                fortigate.create_firewall_address(name, data)
+                self.create_firewall_address(name, data)
         else:
-            print("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
-        
-if __name__ == "__main__":
-    fortigate = Fortigate("Fortigate", file_path='credentials.ini')
-    fortigate.process_address_objects('Files/test_file.json', BULK_DATA=True)
+            raise ValueError("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
