@@ -10,7 +10,6 @@ urllib3.disable_warnings()
 DEVICE = 'FortiGate'
 
 class Fortigate:
-
     def __init__(self, device_name, file_path, timeout=10, vdom='root', port="443", verify=False):
         self.device_name = device_name
         self.credentials = self._read_credentials(file_path)
@@ -75,7 +74,7 @@ class Fortigate:
                 'api_key': config.get(section, 'api_key')
             }
         return credentials
-    
+
     def login(self):
         """
         Log into the Fortigate with provided parameters
@@ -129,7 +128,7 @@ class Fortigate:
         if request.status_code == 200:
             return True
         return False
-    
+
     def get(self, url):
         """
         Get an object from the device.
@@ -158,7 +157,7 @@ class Fortigate:
         result = session.put(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
         self.logout(session)
         return result
-    
+
     def post(self, url, data):
         """
         Perform POST operation on provided URL
@@ -172,7 +171,7 @@ class Fortigate:
         result = session.post(url, data=data, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
         self.logout(session)
         return result
-    
+
     def delete(self, url):
         """
         Perform DELETE operation on provided URL
@@ -185,7 +184,7 @@ class Fortigate:
         result = session.delete(url, verify=self.verify, timeout=self.timeout, params='vdom='+self.vdom).status_code
         self.logout(session)
         return result
-    
+
     def get_firewall_address(self, specific=False, filters=False):
         """
         Get address object information from firewall
@@ -202,7 +201,7 @@ class Fortigate:
             api_url += "?filter=" + filters
         results = self.get(api_url)
         return results
-    
+
     def create_firewall_address(self, address, data):
         """
         Create firewall address record
@@ -219,8 +218,53 @@ class Fortigate:
         result = self.post(api_url, f"{data}")
         return result
 
+    def read_file(self, filename):
+        if not filename.endswith('.json'):
+            raise ValueError("Invalid file format. Only .json files are accepted.")
+
+        try:
+            with open(filename, 'r', encoding='utf-8') as file:
+                raw_data = file.read()
+                data_list = json.loads(raw_data)
+
+            net_dict = {}
+            for item in data_list:
+                object_id = item.get("objectId")
+                if object_id:
+                    net_dict[object_id] = item
+
+            return net_dict
+        except ValueError as error:
+            print("Error while processing the JSON file:", str(error))
+
+    def process_address_objects(self, filename, name_param=None, BULK_DATA=False):
+        data = fortigate.read_file(filename)
+
+        json_data = {}
+        for value in data.values():
+            SUBNET = None
+            name = value.get("name")
+            host = value.get("host").get("value")
+            if value.get("host").get("kind") == "IPv4Address":
+                SUBNET = "255.255.255.0"
+
+            json_data[name] = {
+                "name": name,
+                "type": "subnet",
+                "subnet": f"{host} {SUBNET}" if SUBNET else host
+            }
+        
+        if name_param:
+            if name_param in json_data:
+                fortigate.create_firewall_address(name_param, json_data[name_param])
+            else:
+                raise ValueError(f"Entry with name '{name_param}' not found in the JSON data.")
+        elif BULK_DATA:
+            for name, data in json_data.items():
+                fortigate.create_firewall_address(name, data)
+        else:
+            print("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
+        
 if __name__ == "__main__":
     fortigate = Fortigate("Fortigate", file_path='credentials.ini')
-    create_data = {'name': 'Test_Okan', 'type': 'subnet', 'subnet': '192.168.0.0 255.255.255.0'}
-    fortigate.create_firewall_address("Test_Okan", create_data)
-
+    fortigate.process_address_objects('Files/test_file.json', BULK_DATA=True)
