@@ -87,17 +87,6 @@ class Fortigate:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
         credentials = self.credentials[self.device_name]
-        url = f"{self.urlbase}logincheck"
-        # Login
-        session.post(url,
-                     data=f"username={credentials['username']}&secretkey={credentials['password']}",
-                     verify=self.verify,
-                     timeout=self.timeout)
-        # Get CSRF token from cookies and add to headers
-        for cookie in session.cookies:
-            if cookie.name == "ccsrftoken":
-                csrftoken = cookie.value
-                session.headers.update({"X-CSRFToken": csrftoken})
         session.headers.update({"Content-Type": "application/json",
                                 "Accept": "application/json", 
                                 "Authorization": f"Bearer {credentials['api_key']}"})
