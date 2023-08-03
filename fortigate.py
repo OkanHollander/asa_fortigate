@@ -98,7 +98,7 @@ class Fortigate:
             if cookie.name == "ccsrftoken":
                 csrftoken = cookie.value
                 session.headers.update({"X-CSRFToken": csrftoken})
-        session.headers.update({"Content-Type": "application/json", 
+        session.headers.update({"Content-Type": "application/json",
                                 "Accept": "application/json", 
                                 "Authorization": f"Bearer {credentials['api_key']}"})
         login_check = session.get(f"{self.urlbase}api/v2/cmdb/system/vdom")
