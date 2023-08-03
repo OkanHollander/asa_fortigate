@@ -1,23 +1,24 @@
 import logging
-from rich import print as rprint
 import json
 import os
 import time
 import configparser
+from rich import print as rprint, style
 import urllib3
 import requests
 
 urllib3.disable_warnings()
-# DEVICE = 'FortiGate'
 
 class Fortigate:
-    def __init__(self, device_name, file_path, timeout=10, vdom='root', port="443", verify=False):
+    """
+    Class for Fortigate devices.
+    """
+    def __init__(self, device_name, file_path, vdom='root'):
         self.device_name = device_name
         self.credentials = self._read_credentials(file_path)
-        self.timeout = timeout
         self.vdom = vdom
-        self.port = port
-        self.verify = verify
+        self.verify = False
+        self.timeout = 10
         self.urlbase = f"http://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/"
         self._setup_logging(logging.DEBUG)
 
@@ -204,8 +205,10 @@ class Fortigate:
         api_url = self.urlbase + "api/v2/cmdb/firewall/address/"
         # Check whether target object already exists
         if self.does_exist(api_url + address):
+            rprint(f"[red][bold]{address} already exists[/bold]![/red]")
             return 424
         result = self.post(api_url, f"{data}")
+        rprint(f"[blue]({result})[/blue]{address} created successfully!\t{data}")
         return result
 
     def read_file(self, filename):
@@ -282,13 +285,13 @@ class Fortigate:
 
         if name_param:
             if name_param in json_data:
-                print(json_data[name_param])
+                # print(json_data[name_param])
                 self.create_firewall_address(name_param, json_data[name_param])
             else:
                 raise ValueError(f"Entry with name '{name_param}' not found in the JSON data.")
         elif BULK_DATA:
             for name, data in json_data.items():
-                print(data)
+                # print(data)
                 self.create_firewall_address(name, data)
         else:
             raise ValueError("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
