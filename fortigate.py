@@ -216,7 +216,7 @@ class Fortigate:
         "return: A JSON object
         """
         if not filename.endswith('.json'):
-            raise ValueError("Invalid file format. Only .json files are accepted.")
+            print("Invalid file format. Only .json files are accepted.")
 
         try:
             with open(filename, 'r', encoding='utf-8') as file:
