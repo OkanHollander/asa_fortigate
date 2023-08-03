@@ -3,7 +3,7 @@ import json
 import os
 import time
 import configparser
-from rich import print as rprint, style
+from rich import print as rprint
 import urllib3
 import requests
 
