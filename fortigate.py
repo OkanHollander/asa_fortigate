@@ -208,6 +208,13 @@ class Fortigate:
         return result
 
     def read_file(self, filename):
+        """
+        Creates a JSON file from the provided filename.
+        
+        :param filename: The name of the file to read.
+        
+        "return: A JSON object
+        """
         if not filename.endswith('.json'):
             raise ValueError("Invalid file format. Only .json files are accepted.")
 
@@ -227,6 +234,14 @@ class Fortigate:
             print("Error while processing the JSON file:", str(error))
 
     def process_address_objects(self, filename, name_param=None, BULK_DATA=False):
+        """
+        Processes the provided JSON file and creates firewall address objects.
+
+        :param filename: The name of the JSON file to process.
+        :param name_param: The name of the object to create.
+        :param BULK_DATA: If set to True, the JSON data will be processed in bulk.
+
+        """
         data = self.read_file(filename)
 
         json_data = {}
