@@ -3,20 +3,22 @@ import json
 import os
 import time
 import configparser
+from rich import print as rprint
 import urllib3
 import requests
 
 urllib3.disable_warnings()
-DEVICE = 'FortiGate'
 
 class Fortigate:
-    def __init__(self, device_name, file_path, timeout=10, vdom='root', port="443", verify=False):
+    """
+    Class for Fortigate devices.
+    """
+    def __init__(self, device_name, file_path, vdom='root'):
         self.device_name = device_name
         self.credentials = self._read_credentials(file_path)
-        self.timeout = timeout
         self.vdom = vdom
-        self.port = port
-        self.verify = verify
+        self.verify = False
+        self.timeout = 10
         self.urlbase = f"http://{self.credentials[self.device_name]['ip_address']}:{self.credentials[self.device_name]['port']}/"
         self._setup_logging(logging.DEBUG)
 
@@ -203,13 +205,22 @@ class Fortigate:
         api_url = self.urlbase + "api/v2/cmdb/firewall/address/"
         # Check whether target object already exists
         if self.does_exist(api_url + address):
+            rprint(f"[red][bold]{address} already exists[/bold]![/red]")
             return 424
         result = self.post(api_url, f"{data}")
+        rprint(f"[blue]({result})[/blue]{address} created successfully!\t{data}")
         return result
 
     def read_file(self, filename):
+        """
+        Creates a JSON file from the provided filename.
+        
+        :param filename: The name of the file to read.
+        
+        "return: A JSON object
+        """
         if not filename.endswith('.json'):
-            raise ValueError("Invalid file format. Only .json files are accepted.")
+            print("Invalid file format. Only .json files are accepted.")
 
         try:
             with open(filename, 'r', encoding='utf-8') as file:
@@ -227,29 +238,64 @@ class Fortigate:
             print("Error while processing the JSON file:", str(error))
 
     def process_address_objects(self, filename, name_param=None, BULK_DATA=False):
+        """
+        Processes the provided JSON file and creates firewall address objects.
+
+        :param filename: The name of the JSON file to process.
+        :param name_param: The name of the object to create.
+        :param BULK_DATA: If set to True, the JSON data will be processed in bulk.
+
+        """
         data = self.read_file(filename)
 
+        kind_mapping = {
+            "IPv4Network": ("subnet", ""),
+            "IPv4Range": ("iprange", ""),
+            "IPv4FQDN": ("fqdn", ""),
+            "IPv4Address": ("subnet", "/32")
+}
         json_data = {}
         for value in data.values():
-            SUBNET = None
             name = value.get("name")
             host = value.get("host").get("value")
-            if value.get("host").get("kind") == "IPv4Address":
-                SUBNET = "255.255.255.0"
+            kind = value.get("host").get("kind")
+            type_value, subnet_suffix = kind_mapping.get(kind, (None, ""))
 
-            json_data[name] = {
-                "name": name,
-                "type": "subnet",
-                "subnet": f"{host} {SUBNET}" if SUBNET else host
-            }
+            # Special handling for IPv4FQDN and IPv4Range
+            if kind == "IPv4FQDN":
+                json_data[name] = {
+                    "name": name,
+                    "type": type_value,
+                    "fqdn": host
+                }
+            elif kind == "IPv4Range":
+                start_ip, end_ip = host.split('-')
+                json_data[name] = {
+                    "name": name,
+                    "type": type_value,
+                    "start-ip": start_ip.strip(),
+                    "end-ip": end_ip.strip()
+                }
+            else:
+                json_data[name] = {
+                    "name": name,
+                    "type": type_value,
+                    "subnet": f"{host}{subnet_suffix}"
+                }
 
         if name_param:
             if name_param in json_data:
+                # print(json_data[name_param])
                 self.create_firewall_address(name_param, json_data[name_param])
             else:
                 raise ValueError(f"Entry with name '{name_param}' not found in the JSON data.")
         elif BULK_DATA:
             for name, data in json_data.items():
+                # print(data)
                 self.create_firewall_address(name, data)
         else:
             raise ValueError("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
+
+if __name__ == "__main__":
+    fortinet = Fortigate('Fortigate', 'credentials.ini')
+    rprint(fortinet.get_firewall_address())
