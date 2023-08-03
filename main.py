@@ -3,10 +3,10 @@ import argparse
 import cisco
 
 FILE_PATH = "credentials.ini"
-CISCO_DEVICE = "ASA"
+CISCO = "ASA"
 
 # Accessing ASA
-CISCO_DEVICE = cisco.Cisco(CISCO_DEVICE, FILE_PATH)
+CISCO_DEVICE = cisco.Cisco(CISCO, FILE_PATH)
 
 
 def arg_parser():
