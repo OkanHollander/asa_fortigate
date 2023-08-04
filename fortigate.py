@@ -246,14 +246,18 @@ class Fortigate:
             return False
 
     def modify_name_for_ip_address(self, name):
-        ip_parts = name.split("/")
-        if len(ip_parts) == 2 and ip_parts[1].isdigit():
-            # Network address with CIDR notation, modify to N-x.x.x.x_y
-            ip_address = ip_parts[0]
-            subnet_mask = ip_parts[1]
-            modified_name = f"N-{ip_address}_{subnet_mask}"
+        if "/" in name:
+            try:
+                # Check if the name is a valid network address in CIDR notation
+                network = ipaddress.IPv4Network(name)
+                # Modify to N-x.x.x.x_y
+                modified_name = f"N-{network.network_address}_{network.prefixlen}"
+            except ipaddress.AddressValueError:
+                # Invalid CIDR notation, treat as single host
+                # Modify to H-x.x.x.x_32
+                modified_name = f"H-{name}_32"
         else:
-            # Single host or invalid format, modify to H-x.x.x.x_32
+            # Single host, modify to H-x.x.x.x_32
             modified_name = f"H-{name}_32"
 
         return modified_name
@@ -266,7 +270,8 @@ class Fortigate:
         :param name_param: The name of the object to create.
         :param BULK_DATA: If set to True, the JSON data will be processed in bulk.
         """
-        data = self.read_file(filename)
+        with open(filename, "r") as file:
+            data = json.load(file)
 
         kind_mapping = {
             "IPv4Network": ("subnet", ""),
@@ -276,10 +281,10 @@ class Fortigate:
         }
 
         json_data = {}
-        for value in data.values():
-            name = value.get("name")
-            host = value.get("host").get("value")
-            kind = value.get("host").get("kind")
+        for entry in data:
+            name = entry.get("name")
+            host = entry.get("host").get("value")
+            kind = entry.get("host").get("kind")
             type_value, subnet_suffix = kind_mapping.get(kind, (None, ""))
 
             # Modify the name for IP addresses
@@ -324,7 +329,7 @@ class Fortigate:
                 self.create_firewall_address(name, data)
         else:
             raise ValueError("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
-        
+
 if __name__ == "__main__":
     fortinet = Fortigate('Fortigate', 'credentials.ini')
     rprint(fortinet.get_firewall_address())
