@@ -1,4 +1,5 @@
 import logging
+import ipaddress
 import json
 import os
 import time
@@ -237,6 +238,26 @@ class Fortigate:
         except ValueError as error:
             print("Error while processing the JSON file:", str(error))
 
+    def is_ip_address(self, name):
+        try:
+            ipaddress.IPv4Address(name)
+            return True
+        except ipaddress.AddressValueError:
+            return False
+
+    def modify_name_for_ip_address(self, name):
+        ip_parts = name.split("/")
+        if len(ip_parts) == 2 and ip_parts[1].isdigit():
+            # Network address with CIDR notation, modify to N-x.x.x.x_y
+            ip_address = ip_parts[0]
+            subnet_mask = ip_parts[1]
+            modified_name = f"N-{ip_address}_{subnet_mask}"
+        else:
+            # Single host or invalid format, modify to H-x.x.x.x_32
+            modified_name = f"H-{name}_32"
+
+        return modified_name
+
     def process_address_objects(self, filename, name_param=None, BULK_DATA=False):
         """
         Processes the provided JSON file and creates firewall address objects.
@@ -244,7 +265,6 @@ class Fortigate:
         :param filename: The name of the JSON file to process.
         :param name_param: The name of the object to create.
         :param BULK_DATA: If set to True, the JSON data will be processed in bulk.
-
         """
         data = self.read_file(filename)
 
@@ -253,13 +273,19 @@ class Fortigate:
             "IPv4Range": ("iprange", ""),
             "IPv4FQDN": ("fqdn", ""),
             "IPv4Address": ("subnet", "/32")
-}
+        }
+
         json_data = {}
         for value in data.values():
             name = value.get("name")
             host = value.get("host").get("value")
             kind = value.get("host").get("kind")
             type_value, subnet_suffix = kind_mapping.get(kind, (None, ""))
+
+            # Modify the name for IP addresses
+            if kind in ["IPv4Address", "IPv4Network"]:
+                if self.is_ip_address(name):
+                    name = self.modify_name_for_ip_address(name)
 
             # Special handling for IPv4FQDN and IPv4Range
             if kind == "IPv4FQDN":
@@ -284,18 +310,21 @@ class Fortigate:
                 }
 
         if name_param:
+            # First, check if the name_param is an IP address and modify it if necessary
+            if self.is_ip_address(name_param):
+                name_param = self.modify_name_for_ip_address(name_param)
+
+            # Then, try to find a modified name that matches the provided name_param
             if name_param in json_data:
-                # print(json_data[name_param])
                 self.create_firewall_address(name_param, json_data[name_param])
             else:
                 raise ValueError(f"Entry with name '{name_param}' not found in the JSON data.")
         elif BULK_DATA:
             for name, data in json_data.items():
-                # print(data)
                 self.create_firewall_address(name, data)
         else:
             raise ValueError("You must either provide 'name_param' or set 'BULK_DATA' to True for bulk processing.")
-
+        
 if __name__ == "__main__":
     fortinet = Fortigate('Fortigate', 'credentials.ini')
     rprint(fortinet.get_firewall_address())
